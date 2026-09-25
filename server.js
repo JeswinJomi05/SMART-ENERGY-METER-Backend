@@ -30,10 +30,20 @@ setSocketIO(io);
 setDeviceSocketIO(io);
 
 // Middlewares
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-CSRF-Token, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version');
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  next();
+});
+
 app.use(cors({
   origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'X-CSRF-Token'],
 }));
 app.options('*', cors());
 app.use(express.json());
@@ -93,6 +103,27 @@ io.on('connection', (socket) => {
     } catch (e) {
       console.error('[WebSocket] Snapshot request error:', e.message);
     }
+  });
+});
+
+// 404 Catch-All handler with CORS headers
+app.use((req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.status(404).json({
+    success: false,
+    message: `API Route not found: ${req.method} ${req.originalUrl}`,
+  });
+});
+
+// Global error handler with CORS headers
+app.use((err, req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  console.error('[Express Error Handler]', err);
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'Internal Server Error',
   });
 });
 
